@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>StatFooter.qml</file>
+        <file>StatHeader.qml</file>
+        <file>stats.js</file>
+        <file>StatContent.qml</file>
+    </qresource>
+</RCC>
