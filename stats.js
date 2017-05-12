@@ -9,57 +9,56 @@ function createdb(db) {
 function initSettings() {
     mainwin.localdb = LocalStorage.openDatabaseSync("project_stats_db","1.0","",200000,createdb)
     mainwin.localdb.transaction(function(tx) {
-        var rs = tx.executeSql("SELECT * FROM repos ORDER BY name;")
+        var rs = tx.executeSql("SELECT * FROM repos;")
         for (var i=0;i<rs.rows.length;i++) {
-            repoModel.append({ name: rs.rows.item(i).name, url: rs.rows.item(i).url })
+            var valid = repos.addRepo(rs.rows.item(i).name,rs.rows.item(i).url)
+            if (!valid) {
+                var args = [rs.rows.item(i).name,rs.rows.item(i).url]
+                tx.executeSql("DELETE FROM repos WHERE name=? AND url=?;",args)
+            }
         }
     })
-}
-
-function insertRepo(name,url) {
-    //
-    //
 }
 
 function addRepo(url) {
-    var name = url.toString().substring(url.toString().lastIndexOf("/")+1)
-    var inc = false
-    for (var i=0;i<repoModel.count;i++) {
-        if (repoModel.get(i).name > name) {
-            repoModel.insert(i,{name: name, url: url.toString()})
-            inc = true
-            break
-        }
-    }
-    if (!inc) { repoModel.append({name: name, url: url.toString()}) }
+    var exist = false;
     mainwin.localdb.transaction(function(tx) {
-        tx.executeSql("INSERT INTO repos VALUES(?,?);",[name,url.toString()])
+        var rs = tx.executeSql("SELECT COUNT(*) AS count FROM repos WHERE url=?;",[url.toString()])
+        if (rs.rows.item(0).count > 0) { exist = true }
     })
+    if (exist) {
+        existDialog.open()
+        return
+    }
+    var name = url.toString().substring(url.toString().lastIndexOf("/")+1)
+    name = name.split(".")[0]
+    var valid = repos.addRepo(name,url.toString())
+    if (valid) {
+        mainwin.localdb.transaction(function(tx) {
+            tx.executeSql("INSERT INTO repos VALUES(?,?);",[name,url.toString()])
+        })
+    }
 }
 
 function remRepo(idx) {
-    //
-    console.log("close a repo")
-    //
+    mainwin.localdb.transaction(function(tx) {
+        var args = [repos.list[idx].name,repos.list[idx].url]
+        tx.executeSql("DELETE FROM repos WHERE name=? AND url=?;",args)
+    })
+    repos.remRepo(idx)
 }
 
 function run(chx) {
-    // disable controls
     mainwin.onrun = true
-    //
-    // TODO : list the fole in the directory
-    // TODO : look for the extension
-    // TODO : for each file, parse it
-    //
-    //
-    console.log("run !");
-    //
-    //
-    // reenable controls
-    //mainwin.onrun = false
-}
-
-function generate(idx) {
-    //
-    //
+    if (chx == "all") {
+        console.log("generate for all project")
+        for (var i=0;i<repos.count;i++) {
+            repos.list[i].generate()
+        }
+    }
+    else {
+        repoListView.currentIndex = chx
+        repos.list[chx].generate()
+    }
+    mainwin.onrun = false
 }

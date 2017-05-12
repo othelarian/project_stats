@@ -4,6 +4,8 @@ import QtQuick.Controls 2.1
 import QtQuick.Dialogs 1.2
 import QtQuick.LocalStorage 2.0
 
+import PStypes 1.0
+
 import "stats.js" as Stats
 
 Window {
@@ -25,22 +27,30 @@ Window {
     }
     Shortcut {
         sequence: "Ctrl+R"
-        enabled: (!mainwin.onrun && repoModel.count > 0)? true : false
+        enabled: (!mainwin.onrun && repos.count > 0)? true : false
         onActivated: Stats.run("all")
+    }
+    Shortcut {
+        sequence: "Ctrl+Shift+R"
+        enabled: (!mainwin.onrun && repos.count > 0)? true : false
+        onActivated: Stats.run(repoListView.currentIndex)
     }
     Shortcut {
         sequence: StandardKey.Close
         enabled: (repoListView.currentIndex > -1)? true : false
         onActivated: Stats.remRepo(repoListView.currentIndex)
     }
-    ListModel { id: repoModel }
+    Shortcut {
+        sequence: "Ctrl+?"
+        onActivated: helpwin.show()
+    }
     ListView {
         id: repoListView
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.bottom: actionsZone.top
         anchors.margins: 0
-        model: repoModel
+        model: repos.list
         width: 240
         delegate: Item {
             height: 30
@@ -118,9 +128,14 @@ Window {
             }
             CustomButton {
                 width: 30; height: 30
-                enabled: (mainwin.onrun || repoModel.count == 0)? false : true
+                enabled: (mainwin.onrun || repos.count == 0)? false : true
                 text: ">"
                 onClicked: Stats.run("all")
+            }
+            CustomButton {
+                width: 30; height: 30
+                text: "?"
+                onClicked: helpwin.show()
             }
         }
     }
@@ -154,12 +169,56 @@ Window {
     }
     FileDialog {
         id: selectDialog
-        title: "Choose the directory of the project:"
+        title: "Choose the project:"
         visible: false
         selectMultiple: false
         selectExisting: true
-        selectFolder: true
+        selectFolder: false
         folder: shortcuts.home
+        nameFilters: ["Project file (*.pro)"]
         onAccepted: Stats.addRepo(selectDialog.fileUrl)
+    }
+    Dialog {
+        id: existDialog
+        visible: false
+        title: "Project already listed!"
+        standardButtons: Dialog.Ok
+        Label {
+            text: "This project is already listed!"
+            anchors.centerIn: parent
+        }
+    }
+    Window {
+        id: helpwin
+        visible: false
+        modality: Qt.ApplicationModal
+        width: 500
+        height: 500
+        minimumWidth: 500
+        maximumWidth: 500
+        minimumHeight: 500
+        maximumHeight: 500
+        Label {
+            anchors.top: parent.top
+            anchors.topMargin: 10
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pointSize: 20
+            font.bold: true
+            text: "Help window"
+        }
+        ListView {
+            //
+            model: ListModel {
+                ListElement { title: "Shortcuts" }
+                ListElement { title: "Bar" }
+                ListElement { title: "Side List" }
+                //
+            }
+            //
+            delegate: Item {
+                //
+                //
+            }
+        }
     }
 }
