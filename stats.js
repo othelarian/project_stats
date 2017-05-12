@@ -53,12 +53,14 @@ function run(chx) {
     if (chx == "all") {
         console.log("generate for all project")
         for (var i=0;i<repos.count;i++) {
-            repos.list[i].generate()
+            var res = repos.list[i].generate()
+            if (!res) { remRepo(i); i-- }
         }
     }
     else {
         repoListView.currentIndex = chx
-        repos.list[chx].generate()
+        var res = repos.list[chx].generate()
+        if (!res) { remRepo(chx) }
     }
     mainwin.onrun = false
 }

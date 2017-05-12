@@ -4,25 +4,34 @@
 #include <QObject>
 #include <QList>
 #include <QQmlListProperty>
+#include <QDir>
 
 class Repo : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName NOTIFY repoChanged)
     Q_PROPERTY(QString url READ getUrl NOTIFY repoChanged)
+    Q_PROPERTY(bool running READ getRun NOTIFY repoChanged)
+    Q_PROPERTY(int nbFiles READ getNbFiles NOTIFY repoChanged)
+    //
 public:
     Repo(QObject *parent = 0);
     Repo(QString name, QString url, QObject *parent = 0);
-    //
-    Q_INVOKABLE void generate();
-    //
+    Q_INVOKABLE bool generate();
     QString getName();
     QString getUrl();
+    bool getRun();
+    int getNbFiles();
     //
 private:
+    void readDir(QDir folder, QString path);
     QString m_name;
     QString m_url;
-    //
+    bool m_running;
+    QList<QString> m_headers;
+    QList<QString> m_sources;
+    QList<QString> m_qml;
+    QList<QString> m_js;
     //
 signals:
     void repoChanged();
