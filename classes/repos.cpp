@@ -2,6 +2,22 @@
 
 #include <QDebug>
 
+// TYPE GROUP #######################
+
+TypeGroup::TypeGroup(QObject *parent) : QObject(parent)
+{
+    //
+    //
+}
+
+void TypeGroup::clear() { m_files.clear(); }
+
+void TypeGroup::append(QString name) { m_files.insert(name,{0}); }
+
+int TypeGroup::length() { return m_files.size(); }
+
+QString TypeGroup::at(int index) { return m_files.keys().at(index); }
+
 // REPO #############################
 
 Repo::Repo(QObject *parent) : QObject(parent) { }
@@ -11,13 +27,16 @@ Repo::Repo(QString name, QString url, QObject *parent) : QObject(parent)
     m_name = name;
     m_url = url;
     m_running = false;
+    m_parsed = false;
+    //
+    //m_headers = new TypeGroup();
     //
 }
 
 bool Repo::generate()
 {
     m_running = true;
-    emit repoChanged();
+    emit repoRunning();
     if (!QFile(QUrl(m_url).toLocalFile()).exists()) { return false; }
     QDir folder(QUrl(m_url.remove(m_url.lastIndexOf("/")+1,m_url.length()-m_url.lastIndexOf("/"))).toLocalFile());
     m_headers.clear();
@@ -28,9 +47,19 @@ bool Repo::generate()
     //
     //
     qInfo() << "headers:";
-    for (int i=0;i<m_headers.length();i++) { qInfo() << m_headers.at(i); }
+    for (int i=0;i<m_headers.length();i++) {
+        //
+        qInfo() << m_headers.at(i);
+        //
+        //
+    }
     qInfo() << "sources:";
-    for (int i=0;i<m_sources.length();i++) { qInfo() << m_sources.at(i); }
+    for (int i=0;i<m_sources.length();i++) {
+        //
+        qInfo() << m_sources.at(i);
+        //
+        //
+    }
     qInfo() << "qml:";
     for (int i=0;i<m_qml.length();i++) qInfo() << m_qml.at(i);
     qInfo() << "js:";
@@ -38,7 +67,12 @@ bool Repo::generate()
     //
     //
     m_running = false;
-    emit repoChanged();
+    m_parsed = true;
+    //
+    qInfo() << "end parsing";
+    //
+    emit repoRunning();
+    emit repoParsed();
     return true;
 }
 
@@ -49,6 +83,26 @@ QString Repo::getUrl() { return m_url; }
 bool Repo::getRun() { return m_running; }
 
 int Repo::getNbFiles() { return m_headers.length()+m_sources.length()+m_qml.length()+m_js.length(); }
+
+bool Repo::getParsed() { return m_parsed; }
+
+QList<double> Repo::getFilesRepartition()
+{
+    QList<double> flist;
+    if (!m_parsed) { return flist; }
+    int total = m_headers.length() + m_sources.length() + m_qml.length() + m_js.length();
+    flist.append(m_headers.length()/double(total));
+    flist.append(m_sources.length()/double(total));
+    flist.append(m_qml.length()/double(total));
+    flist.append(m_js.length()/double(total));
+    return flist;
+}
+
+
+TypeGroup Repo::getHeaders() { return m_headers; }
+//TypeGroup Repo::getSources() { return m_sources; }
+//TypeGroup Repo::getQml() { return m_qml; }
+//TypeGroup Repo::getJs() { return m_js; }
 
 // private methods
 

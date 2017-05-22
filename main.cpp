@@ -3,6 +3,7 @@
 #include <QQmlContext>
 
 #include "classes/repos.h"
+#include "classes/repartitionblock.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,7 +14,9 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("Othy Software");
 
     // set new qml types
+    qmlRegisterType<TypeGroup>("PStypes",1,0,"TypeGroup");
     qmlRegisterType<Repo>("PStypes",1,0,"Repo");
+    qmlRegisterType<RepartitionBlock>("PStypes",1,0,"RepBlock");
 
     // init singletons
     Repos* repos = Repos::getInstance();

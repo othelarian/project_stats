@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>stats.js</file>
         <file>CustomButton.qml</file>
+        <file>CustomTab.qml</file>
     </qresource>
 </RCC>

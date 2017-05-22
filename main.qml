@@ -3,6 +3,7 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 2.1
 import QtQuick.Dialogs 1.2
 import QtQuick.LocalStorage 2.0
+import QtQuick.Layouts 1.3
 
 import PStypes 1.0
 
@@ -11,7 +12,7 @@ import "stats.js" as Stats
 Window {
     id: mainwin
     visible: true
-    width: 640
+    width: 650
     height: 480
     minimumWidth: 640
     minimumHeight: 480
@@ -19,6 +20,7 @@ Window {
     property var localdb
     property bool onrun: false
     property color btnscol: "#0088ff"
+    property int selidx
     Component.onCompleted: Stats.initSettings()
     Shortcut {
         sequence: StandardKey.Open
@@ -36,9 +38,9 @@ Window {
         onActivated: Stats.run(repoListView.currentIndex)
     }
     Shortcut {
-        sequence: StandardKey.Close
+        sequence: "Ctrl+W" //StandardKey.Close (doesn't work on windows)
         enabled: (repoListView.currentIndex > -1)? true : false
-        onActivated: Stats.remRepo(repoListView.currentIndex)
+        onActivated: { mainwin.selidx = repoListView.currentIndex; closeDiag.open() }
     }
     Shortcut {
         sequence: "Ctrl+?"
@@ -104,9 +106,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
                 anchors.rightMargin: 32
-                width: 22; height: 22
-                text: "\u2192"
-                hoverEnabled: true
+                size: 22; text: "\u2192"
                 reversed: (repoListView.currentIndex == index)? true : false
                 enabled: !mainwin.onrun
                 onHoveredChanged: parent.hover = hovered
@@ -116,13 +116,11 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
                 anchors.rightMargin: 5
-                width: 22; height: 22
-                text: "\u2716"
-                hoverEnabled: true
+                size: 22; text: "\u2716"
                 reversed: (repoListView.currentIndex == index)? true : false
                 enabled: !mainwin.onrun
                 onHoveredChanged: parent.hover = hovered
-                onClicked: Stats.remRepo(index)
+                onClicked: { mainwin.selidx = index; closeDiag.open() }
             }
         }
     }
@@ -145,20 +143,17 @@ Window {
             anchors.centerIn: parent
             spacing: 20
             CustomButton {
-                width: 30; height: 30
+                size: 30; text: "+"
                 enabled: !mainwin.onrun
-                text: "+"
                 onClicked: selectDialog.open()
             }
             CustomButton {
-                width: 30; height: 30
+                size: 30; text: "\u21c9"
                 enabled: (mainwin.onrun || repos.count == 0)? false : true
-                text: "\u21c9"
                 onClicked: Stats.run("all")
             }
             CustomButton {
-                width: 30; height: 30
-                text: "?"
+                size: 30; text: "?"
                 onClicked: helpwin.show()
             }
         }
@@ -185,32 +180,167 @@ Window {
             text: "No project available"
         }
         Label {
+            id: projectTitle
             visible: repos.count == 0 ? false : true
-            //
-            // TODO : title of the project
-            //
+            text: repos.list[repoListView.currentIndex].name
+            anchors.top: parent.top
+            anchors.topMargin: 10
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            font.bold: true
+            font.pointSize: 18
         }
         Label {
+            id: projectPath
             visible: repos.count == 0 ? false : true
-            //
-            // TODO : path of the project
-            //
+            text: repos.list[repoListView.currentIndex].url
+            anchors.top: projectTitle.bottom
+            anchors.topMargin: 7
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+
         }
-        ListView {
-            //
-            visible: repos.count == 0 ? false : true
-            //
-            model: ListModel {
-                //
-            }
-            delegate: Item {
-                //
-            }
+        CustomButton {
+            size: 30; text: "\u2192"
+            anchors.top: parent.top
+            anchors.topMargin: 10
+            anchors.right: parent.right
+            anchors.margins: 50
+            onClicked: Stats.run(repoListView.currentIndex)
         }
-        StackView {
+        CustomButton {
+            size: 30; text: "\u2716"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 10
+            onClicked: { mainwin.selidx = repoListView.currentIndex; closeDiag.open() }
+        }
+        TabBar {
+            id: projectTabHead
             visible: repos.count == 0 ? false : true
-            //
-            //
+            anchors.top: projectPath.bottom
+            anchors.topMargin: 10
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            spacing: 0
+            CustomTab { text: "Global" }
+            CustomTab { text: "Headers" }
+            CustomTab { text: "Sources" }
+            CustomTab { text: "QML" }
+            CustomTab { text: "JavaScript" }
+        }
+        StackLayout {
+            visible: repos.count == 0 ? false : true
+            anchors.top: projectTabHead.bottom
+            anchors.topMargin: 0
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            anchors.right: parent.right
+            anchors.rightMargin: 20
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 20
+            currentIndex: projectTabHead.currentIndex
+            Item {
+                id: projectGlobal
+                Column {
+                    spacing: 3
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 0
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 0
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Files repartition:"
+                            width: 140
+                        }
+                        RepBlock {
+                            valid: repos.list[repoListView.currentIndex].parsed
+                            colors: ["crimson","steelblue","lime","gold"]
+                            values: repos.list[repoListView.currentIndex].filesRepartition
+                            width: parent.width-143
+                            height: 25
+                        }
+                    }
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 0
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Lines repartition:"
+                            width: 140
+                        }
+                        RepBlock {
+                            //
+                            valid: false
+                            //
+                            width: parent.width-143
+                            height: 24
+                            //
+                        }
+                    }
+                    Row {
+                        //
+                        //
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Types:"
+                            width: 140
+                        }
+                    }
+                }
+            }
+            Item {
+                Label {
+                    visible: !repos.list[repoListView.currentIndex].parsed
+                    text: "Run stats generation for this project"
+                    font.italic: true
+                }
+                Label {
+                    //
+                    visible: repos.list[repoListView.currentIndex].parsed
+                    text: "There is no header files in this project"
+                    //
+                }
+                Column {
+                    //
+                    visible: repos.list[repoListView.currentIndex].parsed
+                    //
+                }
+            }
+            Item {
+                //
+                //
+                Label {
+                    visible: !repos.list[repoListView.currentIndex].parsed
+                    text: "Run stats generation for this project"
+                    font.italic: true
+                }
+                Label { text: "item 3" }
+            }
+            Item {
+                //
+                //
+                Label {
+                    visible: !repos.list[repoListView.currentIndex].parsed
+                    text: "Run stats generation for this project"
+                    font.italic: true
+                }
+                Label { text: "item 4" }
+            }
+            Item {
+                //
+                //
+                Label {
+                    visible: !repos.list[repoListView.currentIndex].parsed
+                    text: "Run stats generation for this project"
+                    font.italic: true
+                }
+                Label { text: "item 5" }
+            }
         }
     }
     FileDialog {
@@ -232,6 +362,17 @@ Window {
         Label {
             text: "This project is already listed!"
             anchors.centerIn: parent
+        }
+    }
+    Dialog {
+        id: closeDiag
+        visible: false
+        title: "Remove a project"
+        width: 250
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: Stats.remRepo(mainwin.selidx)
+        Label {
+            text: "Do you really want to remove '"+repos.list[repoListView.currentIndex].name+"'?"
         }
     }
     Window {
@@ -384,19 +525,7 @@ Window {
                     Column {
                         spacing: 10
                         width: 100
-                        Rectangle {
-                            width: 30; height: 30; radius: 15
-                            color: "#0088ff"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            Text {
-                                color: "white"
-                                font.pointSize: 18
-                                text: "+"
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
+                        CustomButton { size: 30; text: "+" }
                         Label {
                             text: "Add a\nproject"
                             horizontalAlignment: Text.AlignHCenter
@@ -406,19 +535,7 @@ Window {
                     Column {
                         spacing: 10
                         width: 100
-                        Rectangle {
-                            width: 30; height: 30; radius: 15
-                            color: "#0088ff"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            Text {
-                                color: "white"
-                                font.pointSize: 18
-                                text: "\u21c9 "//"\u21db"
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
+                        CustomButton { size: 30; text: "\u21c9" }
                         Label {
                             text: "Run for all\nproject"
                             horizontalAlignment: Text.AlignHCenter
@@ -428,19 +545,7 @@ Window {
                     Column {
                         spacing: 10
                         width: 100
-                        Rectangle {
-                            width: 30; height: 30; radius: 15
-                            color: "#0088ff"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            Text {
-                                color: "white"
-                                font.pointSize: 18
-                                text: "?"
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
+                        CustomButton { size: 30; text: "?" }
                         Label {
                             text: "Show help"
                             horizontalAlignment: Text.AlignHCenter
@@ -468,22 +573,13 @@ Window {
                         Rectangle {
                             width: 180; height: 30
                             color: "#0088ff"
-                            Rectangle {
+                            CustomButton {
+                                size: 22
+                                text: "\u21bb"
+                                enabled: false
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
                                 anchors.leftMargin: 5
-                                width: 22; height: 22; radius: 11
-                                border.color: "white"
-                                border.width: 1
-                                color: "#77ccff"
-                                Text {
-                                    text: "\u21bb"
-                                    color: "white"
-                                    font.pointSize: 18
-                                    anchors.centerIn: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
                             }
                             Label {
                                 anchors.left: parent.left
@@ -492,39 +588,21 @@ Window {
                                 color: "white"
                                 text: "Project Stats"
                             }
-                            Rectangle {
+                            CustomButton {
+                                size: 22
+                                text: "\u2192"
+                                reversed: true
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: 32
-                                width: 22; height: 22; radius: 11
-                                color: "white"
-                                border.color: "white"
-                                border.width: 1
-                                Text {
-                                    color: "black"
-                                    font.pointSize: 18
-                                    anchors.centerIn: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: "\u2192"
-                                }
                             }
-                            Rectangle {
+                            CustomButton {
+                                size: 22
+                                text: "\u2716"
+                                reversed: true
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: 5
-                                width: 22; height: 22; radius: 11
-                                color: "white"
-                                border.color: "white"
-                                border.width: 1
-                                Text {
-                                    color: "black"
-                                    font.pointSize: 18
-                                    anchors.centerIn: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: "\u2716"
-                                }
                             }
                         }
                         Label {
@@ -545,39 +623,19 @@ Window {
                                 color: "black"
                                 text: "Project Stats"
                             }
-                            Rectangle {
+                            CustomButton {
+                                size: 22
+                                text: "\u2192"
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: 32
-                                width: 22; height: 22; radius: 11
-                                color: "#0088ff"
-                                border.color: "white"
-                                border.width: 1
-                                Text {
-                                    color: "white"
-                                    font.pointSize: 18
-                                    anchors.centerIn: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: "\u2192"
-                                }
                             }
-                            Rectangle {
+                            CustomButton {
+                                size: 22
+                                text: "\u2716"
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.right: parent.right
                                 anchors.rightMargin: 5
-                                width: 22; height: 22; radius: 11
-                                color: "#0088ff"
-                                border.color: "white"
-                                border.width: 1
-                                Text {
-                                    color: "white"
-                                    font.pointSize: 18
-                                    anchors.centerIn: parent
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: "\u2716"
-                                }
                             }
                         }
                         Label {
@@ -592,20 +650,11 @@ Window {
                     Row {
                         spacing: 10
                         height: 30
-                        Rectangle {
+                        CustomButton {
+                            size: 22
+                            text: "\u21bb"
+                            enabled: false
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 22; height: 22; radius: 11
-                            border.color: "white"
-                            border.width: 1
-                            color: "#77ccff"
-                            Text {
-                                text: "\u21bb"
-                                color: "white"
-                                font.pointSize: 18
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
                         }
                         Label {
                             anchors.verticalCenter: parent.verticalCenter
@@ -615,20 +664,10 @@ Window {
                     Row {
                         spacing: 10
                         height: 30
-                        Rectangle {
+                        CustomButton {
+                            size: 22
+                            text: "\u2192"
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 22; height: 22; radius: 11
-                            color: "#0088ff"
-                            border.color: "white"
-                            border.width: 1
-                            Text {
-                                color: "white"
-                                font.pointSize: 18
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                text: "\u2192"
-                            }
                         }
                         Label {
                             anchors.verticalCenter: parent.verticalCenter
@@ -638,20 +677,10 @@ Window {
                     Row {
                         spacing: 10
                         height: 30
-                        Rectangle {
+                        CustomButton {
+                            size: 22
+                            text: "\u2716"
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 22; height: 22; radius: 11
-                            color: "#0088ff"
-                            border.color: "white"
-                            border.width: 1
-                            Text {
-                                color: "white"
-                                font.pointSize: 18
-                                anchors.centerIn: parent
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                text: "\u2716"
-                            }
                         }
                         Label {
                             anchors.verticalCenter: parent.verticalCenter

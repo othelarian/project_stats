@@ -3,7 +3,8 @@ QT += qml quick
 CONFIG += c++11
 
 SOURCES += main.cpp \
-    classes/repos.cpp
+    classes/repos.cpp \
+    classes/repartitionblock.cpp
 
 RESOURCES += qml.qrc
 
@@ -16,4 +17,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    classes/repos.h
+    classes/repos.h \
+    classes/repartitionblock.h
